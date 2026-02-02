@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next-Word Prediction - Trigram Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .results-title {
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .predictions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .prediction-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .prediction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .prediction-word {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .prediction-rank {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #c33;
+        }
+
+        .stats {
+            background: #f5f7fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+        }
+
+        .stats strong {
+            color: #333;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .predictions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Next-Word Predictor</h1>
+        <p class="subtitle">Using Trigram N-Gram Model trained on Brown Corpus</p>
+
+        <div class="input-section">
+            <label for="inputText">Enter text (last 2 words will be used):</label>
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="inputText"
+                    placeholder="e.g., the united"
+                    autocomplete="off"
+                >
+                <button id="predictBtn">Predict</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div id="resultsContainer"></div>
+        </div>
+
+        <div class="stats">
+            <strong>Model:</strong> Trigram N-Gram | <strong>Corpus:</strong> Brown Corpus | <strong>Top Predictions:</strong> 3
+        </div>
+    </div>
+
+    <script>
+        const inputText = document.getElementById('inputText');
+        const predictBtn = document.getElementById('predictBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        // Allow Enter key to trigger prediction
+        inputText.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                predict();
+            }
+        });
+
+        // Predict button click
+        predictBtn.addEventListener('click', predict);
+
+        async function predict() {
+            const text = inputText.value.trim();
+
+            // Validate input
+            if (!text) {
+                showError('Please enter some text');
+                return;
+            }
+
+            const words = text.split(/\s+/);
+            if (words.length < 2) {
+                showError('Please enter at least 2 words');
+                return;
+            }
+
+            // Show loading state
+            showLoading();
+            predictBtn.disabled = true;
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+                console.error('Prediction error:', error);
+            } finally {
+                predictBtn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            if (!data.predictions || data.predictions.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <p>No predictions found for "<strong>${escapeHtml(data.input_text)}</strong>"</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Try a different word combination from the Brown Corpus</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const predictionsHTML = data.predictions
+                .map((word, index) => `
+                    <div class="prediction-card" onclick="copyToInput('${escapeHtml(word)}')">
+                        <div class="prediction-word">${escapeHtml(word)}</div>
+                        <div class="prediction-rank">Rank #${index + 1}</div>
+                    </div>
+                `)
+                .join('');
+
+            resultsContainer.innerHTML = `
+                <div class="results-title">Top 3 Predictions for "${escapeHtml(data.input_text)}"</div>
+                <div class="predictions">${predictionsHTML}</div>
+            `;
+        }
+
+        function showLoading() {
+            resultsContainer.innerHTML = `
+                <div class="loading">
+                    <span class="spinner"></span>
+                    Predicting next word...
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            resultsContainer.innerHTML = `
+                <div class="error-message">${escapeHtml(message)}</div>
+            `;
+        }
+
+        function copyToInput(word) {
+            const current = inputText.value.trim().split(/\s+/);
+            current.push(word);
+            inputText.value = current.slice(-2).join(' ');
+            inputText.focus();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initial state
+        resultsContainer.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <p>Enter at least 2 words to see predictions</p>
+            </div>
+        `;
+    </script>
+</body>
+</html>
